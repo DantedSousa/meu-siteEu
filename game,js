@@ -1,0 +1,97 @@
+document.addEventListener('DOMContentLoaded', () => {
+    const ball = document.querySelector('.ball');
+    const hoop = document.querySelector('.hoop');
+    const scoreDisplay = document.getElementById('score');
+    const resetButton = document.getElementById('resetButton');
+
+    let score = 0;
+    let isBallMoving = false;
+    let initialBallPos = { left: 0, top: 0 };
+    let mouseStartPos = { x: 0, y: 0 };
+
+    function onMouseMove(event) {
+        if (isBallMoving) return;
+
+        const ballRect = ball.getBoundingClientRect();
+        const offsetX = event.clientX - mouseStartPos.x;
+        const offsetY = event.clientY - mouseStartPos.y;
+
+        ball.style.left = `${initialBallPos.left + offsetX}px`;
+        ball.style.top = `${initialBallPos.top + offsetY}px`;
+    }
+
+    function onMouseUp() {
+        if (isBallMoving) return;
+
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+
+        isBallMoving = true;
+
+        const ballRect = ball.getBoundingClientRect();
+        const hoopRect = hoop.getBoundingClientRect();
+        const ballPos = {
+            left: (ballRect.left + ballRect.width / 2) - (hoopRect.left + hoopRect.width / 2),
+            top: (ballRect.top + ballRect.height / 2) - (hoopRect.top + hoopRect.height / 2)
+        };
+        const gravity = 0.5;
+        let velocityX = (hoopRect.left + hoopRect.width / 2 - ballRect.left - ballRect.width / 2) / 10;
+        let velocityY = (hoopRect.top + hoopRect.height / 2 - ballRect.top - ballRect.height / 2) / 10;
+
+        function animateBall() {
+            ball.style.left = `${ballRect.left + ballPos.left}px`;
+            ball.style.top = `${ballRect.top + ballPos.top}px`;
+
+            ballPos.left += velocityX;
+            ballPos.top += velocityY;
+            velocityY -= gravity;
+
+            const ballCenterX = ballRect.left + ballRect.width / 2;
+            const ballCenterY = ballRect.top + ballRect.height / 2;
+
+            if (Math.abs(ballCenterX - (hoopRect.left + hoopRect.width / 2)) < 50 &&
+                Math.abs(ballCenterY - (hoopRect.top + hoopRect.height / 2)) < 50) {
+                score++;
+                scoreDisplay.textContent = score;
+                resetBall();
+                isBallMoving = false;
+                return;
+            }
+
+            if (ballRect.top > window.innerHeight || ballRect.left < 0 || ballRect.left > window.innerWidth) {
+                resetBall();
+                isBallMoving = false;
+                return;
+            }
+
+            requestAnimationFrame(animateBall);
+        }
+
+        animateBall();
+    }
+
+    function resetBall() {
+        ball.style.left = '50%';
+        ball.style.top = '50px';
+        ball.style.transform = 'translateX(-50%)'; // Para centralizar horizontalmente
+    }
+
+    ball.addEventListener('mousedown', (event) => {
+        if (isBallMoving) return;
+
+        initialBallPos = {
+            left: parseFloat(getComputedStyle(ball).left),
+            top: parseFloat(getComputedStyle(ball).top)
+        };
+        mouseStartPos = { x: event.clientX, y: event.clientY };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    });
+
+    resetButton.addEventListener('click', () => {
+        score = 0;
+        scoreDisplay.textContent = score;
+        resetBall();
+    });
+});
